@@ -28,7 +28,7 @@ def adjust(dic, column='time'):
     jst = []
     for ts in utc:
         t0 = pd.to_datetime(ts)
-        t0 = t.replace(tzinfo=UTC)
+        t0 = t0.replace(tzinfo=UTC)
         t = adjust_summer_time(t0)
         time.append(t)
         tj = t.astimezone(JST)
@@ -36,11 +36,34 @@ def adjust(dic, column='time'):
     dic[column] = time
     dic['jst'] = jst
             
+class TimeFrame:
+    TICK = 'TICK'
+    M1 = 'M1'
+    M5 = 'M5'
+    M15 = 'M15'
+    M30 = 'M30'
+    H1 = 'H1'
+    H4 = 'H4'
+    D1 = 'D1'
+    W1 = 'W1'
+    timeframes = {  M1: mt5.TIMEFRAME_M1, 
+                    M5: mt5.TIMEFRAME_M5,
+                    M15: mt5.TIMEFRAME_M15,
+                    M30: mt5.TIMEFRAME_M30,
+                    H1: mt5.TIMEFRAME_H1,
+                    H4: mt5.TIMEFRAME_H4,
+                    D1: mt5.TIMEFRAME_D1,
+                    W1: mt5.TIMEFRAME_W1}
+            
+    @staticmethod 
+    def const(timeframe_str: str):
+        return TimeFrame.timeframes[timeframe_str]            
+            
 class Mt5Api:
     def __init__(self):
         self.connect()
         
-    def connect():
+    def connect(self):
         if mt5.initialize():
             print('Connected to MT5 Version', mt5.version())
         else:
@@ -48,7 +71,8 @@ class Mt5Api:
 
     def get_rates(self, symbol: str, timeframe: str, length: int):
         #print(symbol, timeframe)
-        rates = mt5.copy_rates_from_pos(symbol,  timeframe, 0, length)
+        
+        rates = mt5.copy_rates_from_pos(symbol,  TimeFrame.const(timeframe), 0, length)
         if rates is None:
             raise Exception('get_rates error')
         return self.parse_rates(rates)
@@ -64,11 +88,10 @@ class Mt5Api:
 
 def test1():
     symbol = 'NIKKEI'
-    mt5trade = Mt5Api(symbol)
-    mt5trade.connect()
-    ret, result = mt5trade.entry(Signal.SHORT, 0.1, stoploss=300.0)
-    result.description()
-    mt5trade.close_order_result(result, result.volume)
+    mt5api = Mt5Api()
+    df = mt5api.get_rates(symbol, 'M1', 100)
+    print(df)
+
     pass
 
 
