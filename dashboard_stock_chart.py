@@ -18,13 +18,12 @@ import plotly
 import plotly.graph_objs as go
 
 from plotly.figure_factory import create_candlestick
-from YahooFinanceApi import YahooFinanceApi
 
 from TimeUtils import TimeUtils
 
 
 TICKERS = ['^DJI', 'CS', 'MS', 'AAPL', 'AMZN', 'META']
-TIMEFRAMES = list(YahooFinanceApi.TIMEFRAMES.keys())
+TIMEFRAMES = ['M1', 'M5', 'M30', 'H1', 'H4', 'D1']
 BARSIZE = ['50', '100', '150', '200', '300', '400']
 
 INTERVAL_MSEC = 10000
@@ -83,7 +82,7 @@ sidebar =  html.Div([
     
 contents = html.Div([    
                         dbc.Row([
-                                    html.H5('YahooFinance', style={'margin-top': '2px', 'margin-left': '24px'})
+                                    html.H5('MetaTrader', style={'margin-top': '2px', 'margin-left': '24px'})
                                 ],
                                 style={"height": "3vh"}, className='bg-primary text-white'),
                         dbc.Row([
