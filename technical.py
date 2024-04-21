@@ -1,7 +1,6 @@
 import numpy as np 
 import math
 import statistics as stat
-from mt5_api import Columns
 from common import Indicators, Signal, Columns, UP, DOWN, HIGH, LOW, HOLD
 from datetime import datetime, timedelta
 from utils import Utils

@@ -22,19 +22,17 @@ def adjust_summer_time(time: datetime):
     dt, tz = server_time(3, 2, 11, 1, 3.0)
     return time - dt
 
-def adjust(dic, column='time'):
-    utc = dic[column]
-    time = []
+def adjust(time):
+    utc = []
     jst = []
-    for ts in utc:
+    for ts in time:
         t0 = pd.to_datetime(ts)
         t0 = t0.replace(tzinfo=UTC)
         t = adjust_summer_time(t0)
-        time.append(t)
+        utc.append(t)
         tj = t.astimezone(JST)
         jst.append(tj)  
-    dic[column] = time
-    dic['jst'] = jst
+    return utc, jst
             
 class TimeFrame:
     TICK = 'TICK'
@@ -79,18 +77,27 @@ class Mt5Api:
 
     def parse_rates(self, rates):
         df = pd.DataFrame(rates)
-        df['time'] = pd.to_datetime(df['time'], unit='s')
-        adjust(df, 'time')
+        t0 = pd.to_datetime(df['time'], unit='s') 
+        utc, jst = adjust(t0)
         
-        return df
+        dic = {}
+        dic['time'] = utc
+        dic['jst'] = jst
+        dic['open'] = df['open'].to_list()
+        dic['high'] = df['high'].to_list()
+        dic['low'] = df['low'].to_list()
+        dic['close'] = df['close'].to_list()
+        dic['tick_volume'] = df['tick_volume'].to_list()        
+        return dic
         
 
 
 def test1():
     symbol = 'NIKKEI'
     mt5api = Mt5Api()
-    df = mt5api.get_rates(symbol, 'M1', 100)
-    print(df)
+    dic = mt5api.get_rates(symbol, 'M1', 100)
+    jst = dic['jst']
+    print(jst[10:])
 
     pass
 
