@@ -125,7 +125,7 @@ timeframe =  html.Div([
 
 barsize_dropdown = dcc.Dropdown(id='barsize_dropdown', 
                                 multi=False, 
-                                value=BARSIZE[4],
+                                value=BARSIZE[2],
                                 options=[{'label': x, 'value': x} for x in BARSIZE],
                                 style={'width': '120px'})
 
@@ -133,6 +133,19 @@ barsize = html.Div([    html.P('Display Bar Size',
                                style={'margin-top': '16px', 'margin-bottom': '4px'},
                                className='font-weight-bold'),
                         barsize_dropdown])
+
+
+vwap_multiply = dcc.Input(id='vwap_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
+vwap_begin_hour = dcc.Input(id='vwap_begin_hour',type="number", min=0, max=23, step=1, value=7)
+bb_window = dcc.Input(id='bb_window',type="number", min=10, max=100, step=1, value=30)
+bb_ma_window = dcc.Input(id='bb_ma_window',type="number", min=10, max=100, step=1, value=80)
+bb_multiply = dcc.Input(id='bb_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
+
+params1 = html.Div([html.P('VWAP Begin Hour'), vwap_begin_hour])
+params2 = html.Div([html.P('VWAP Multiply'), vwap_multiply])
+params3 = html.Div([html.P('BB Window'), bb_window])
+params4 = html.Div([html.P('Bb MA Window'), bb_ma_window])
+params5 = html.Div([html.P('BB Multiply'), bb_multiply])
 
 sidebar =  html.Div([
                         setting_bar,
@@ -144,8 +157,15 @@ sidebar =  html.Div([
                                     ticker,
                                     timeframe,
                                     barsize,
+                                    html.Hr(),
+                                    
+                                    params1,
+                                    params2,
+                                    params3,
+                                    params4,
+                                    params5,
                                     html.Hr()],
-                        style={'height': '50vh', 'margin': '8px'})
+                                style={'height': '50vh', 'margin': '8px'})
                     ])
     
 contents = html.Div([    
@@ -183,9 +203,24 @@ app.layout = dbc.Container([
 @app.callback(
     Output('chart', 'children'),
     Input('timer', 'n_intervals'),
-    State('symbol_dropdown', 'value'), State('timeframe_dropdown', 'value'), State('barsize_dropdown', 'value')
+    
+    State('vwap_begin_hour', 'value'), 
+    State('vwap_multiply', 'value'),
+    State('bb_window', 'value'), 
+    State('bb_ma_window', 'value'),
+    State('bb_multiply', 'value'),
+        
+    State('symbol_dropdown', 'value'), 
+    State('timeframe_dropdown', 'value'), 
+    State('barsize_dropdown', 'value')
 )
-def update_chart(interval, symbol, timeframe, num_bars):
+def update_chart(interval, vwap_begin_hour, vwap_multiply, bb_window, bb_ma_window, bb_multiply, symbol, timeframe, num_bars):
+    technical_param['vwap_begin_hour'] = vwap_begin_hour
+    technical_param['vwap_multiply'] = vwap_multiply
+    technical_param['bb_window'] = bb_window
+    technical_param['bb_ma_window'] = bb_ma_window
+    technical_param['bb_multiply'] == bb_multiply
+    
     num_bars = int(num_bars)
     data1 = api.get_rates(symbol, timeframe, num_bars + 60 * 24)
     return create_chart(1, symbol, timeframe, data1, num_bars)
