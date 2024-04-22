@@ -154,11 +154,11 @@ sidebar =  html.Div([
                                     date,
                                     hour,
                                     minute,
+                                    html.Hr(),
                                     ticker,
                                     timeframe,
                                     barsize,
                                     html.Hr(),
-                                    
                                     params1,
                                     params2,
                                     params3,
@@ -321,30 +321,24 @@ def create_chart(num, symbol, timeframe, data, num_bars):
     # Make the title dynamic to reflect whichever stock we are analyzing
     fig.update_layout(
         title= symbol + '(' + timeframe + ') ' + 'Live Share Price:',
-        yaxis_title='Stock Price (USD per Shares)') 
+        yaxis_title='Stock Price') 
 
     # update y-axis label
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
-    fig.update_yaxes(title_text="MACD", showgrid=False, row=3, col=1)
-    fig.update_yaxes(title_text="Stoch", row=4, col=1)           
+    fig.update_yaxes(title_text="VWAP Band", showgrid=False, row=3, col=1)
+    fig.update_yaxes(title_text="BB Band", row=4, col=1)           
 
-    fig.update_xaxes(
-        rangeslider_visible=False,
-        rangeselector_visible=False,
-        rangeselector=dict(
-            buttons=list([
-                dict(count=15, label="15m", step="minute", stepmode="backward"),
-                dict(count=45, label="45m", step="minute", stepmode="backward"),
-                dict(count=1, label="HTD", step="hour", stepmode="todate"),
-                dict(count=3, label="3h", step="hour", stepmode="backward"),
-                dict(step="all")
-            ])
-        )
-    )
-
-
-
+    fig['layout'].update({
+                            'title': symbol + '  ' + timeframe + '  ('  +  str(tfrom) + ')  ...  (' + str(tto) + ')',
+                            'xaxis':{
+                                        'title': 'Time',
+                                        'showgrid': True,
+                                        'ticktext': [x.strftime(form) for x in jst][xtick::5],
+                                        'tickvals': np.arange(xtick, len(jst), 5)
+                                    }
+                        })
+                            
     return dcc.Graph(id='stock-graph' + str(num), figure=fig)
 
 if __name__ == '__main__':
