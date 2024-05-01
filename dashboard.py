@@ -41,6 +41,7 @@ INTERVAL_MSEC = 30 * 1000
 
 technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
+VWAP_BEGIN_HOUR = [8, 20]
 
 
 api = Mt5Api()
@@ -94,12 +95,10 @@ def select_symbol(number: int):
     return [header, symbol, timeframe, barsize] 
 
 vwap_multiply = dcc.Input(id='vwap_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
-vwap_begin_hour = dcc.Input(id='vwap_begin_hour',type="number", min=0, max=23, step=1, value=7)
 bb_window = dcc.Input(id='bb_window',type="number", min=10, max=100, step=1, value=30)
 bb_ma_window = dcc.Input(id='bb_ma_window',type="number", min=10, max=100, step=1, value=80)
 bb_multiply = dcc.Input(id='bb_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
 
-params1 = html.Div([html.P('VWAP Begin Hour'), vwap_begin_hour])
 params2 = html.Div([html.P('VWAP Multiply'), vwap_multiply])
 params3 = html.Div([html.P('BB Window'), bb_window])
 params4 = html.Div([html.P('Bb MA Window'), bb_ma_window])
@@ -113,7 +112,6 @@ sidebar1 =  html.Div([
                                     symbol1[2],
                                     symbol1[3],
                                     html.Hr(),
-                                    params1,
                                     params2,
                                     params3,
                                     params4,
@@ -186,7 +184,6 @@ app.layout = dbc.Container([
     State('symbol_dropdown1', 'value'), 
     State('timeframe_dropdown1', 'value'), 
     State('barsize_dropdown1', 'value'),
-    State('vwap_begin_hour', 'value'), 
     State('vwap_multiply', 'value'),
     State('bb_window', 'value'), 
     State('bb_ma_window', 'value'),
@@ -203,7 +200,6 @@ def update_chart(interval,
                  symbol1,
                  timeframe1,
                  num_bars1,
-                 vwap_begin_hour,
                  vwap_multiply,
                  bb_window,
                  bb_ma_window, 
@@ -215,14 +211,13 @@ def update_chart(interval,
                  atr_multiply,
                  peak_hold_term
                  ):
-    technical_param1['vwap_begin_hour'] = vwap_begin_hour
     technical_param1['vwap_multiply'] = vwap_multiply
     technical_param1['bb_window'] = bb_window
     technical_param1['bb_ma_window'] = bb_ma_window
     technical_param1['bb_multiply'] == bb_multiply
     
     num_bars1 = int(num_bars1)
-    data1 = api.get_rates(symbol1, timeframe1, num_bars1 + 60 * 24)
+    data1 = api.get_rates(symbol1, timeframe1, num_bars1 + 60 * 8)
     fig1 = create_chart1(data1, num_bars1)
 
     technical_param2['atr_window'] = atr_window
@@ -230,14 +225,13 @@ def update_chart(interval,
     technical_param2['peak_hold_term'] = peak_hold_term
     
     num_bars2 = int(num_bars2)
-    data2 = api.get_rates(symbol2, timeframe2, num_bars2 + 60 * 24)
+    data2 = api.get_rates(symbol2, timeframe2, num_bars2 + 60 * 8)
     fig2 = create_chart2(data2, num_bars2)
     return create_graph(symbol1, timeframe1, fig1, data1), create_graph(symbol2, timeframe2, fig2, data2)
 
 
 def indicators1(data, param):
-    vwap_begin_hour = param['vwap_begin_hour']
-    VWAP(data, param['vwap_multiply'], begin_hour=vwap_begin_hour)
+    VWAP(data, param['vwap_multiply'], VWAP_BEGIN_HOUR)
     # ATR(self.data, 15, 100)
     BB(data, param['bb_window'], param['bb_ma_window'], param['bb_multiply'])      
 

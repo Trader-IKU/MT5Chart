@@ -321,44 +321,27 @@ def time_jst(year, month, day, hour=0):
     t = t0.replace(tzinfo=JST)
     return t
 
-def VWAP(data: dict, multiply: float, begin_hour=7):
-    def next(jst, begin, hour):
-        n = len(jst)
-        if begin >= n:
-            return -1
-        t = jst[begin]
-        tref = time_jst(t.year, t.month, t.day, hour=hour)
-        if tref <= t:
-            tref += timedelta(days=1)
-        for i in range(begin, n):
-            if jst[i] >= tref:
-                return i
-        return -1
-
+def VWAP(data: dict, multiply: float, begin_hour_list):
     jst = data[Columns.JST]
     n = len(jst)
-    begin = 0
-    begin = next(jst, begin, begin_hour)
-    if begin < 0:
-        begin = 0
-    end = next(jst, begin + 1, begin_hour)
-    if end < 0: 
-        end = n
-    
     MID(data)
     mid = data[Columns.MID]
     volume = data['tick_volume']
     
-    vwap = full(0, n)
-    power_acc = full(0, n)
-    volume_acc = full(0, n)
+    vwap = full(np.nan, n)
+    power_acc = full(np.nan, n)
+    volume_acc = full(np.nan, n)
     std = full(0, n)
-    
-    while True:
-        power_sum = 0
-        vwap_sum = 0
-        volume_sum = 0
-        for i in range(begin, end):
+    valid = False
+    for i in range(n):
+        t = jst[i]
+        if t.hour in begin_hour_list:
+            if t.minute == 0 and t.second == 0:
+                power_sum = 0
+                vwap_sum = 0
+                volume_sum = 0
+                valid = True
+        if valid:
             vwap_sum += volume[i] * mid[i]
             volume_sum += volume[i]  
             volume_acc[i] = volume_sum
@@ -371,14 +354,6 @@ def VWAP(data: dict, multiply: float, begin_hour=7):
                     std[i] = np.sqrt(deviation)
                 else:
                     std[i] = 0
-        if end >= n:
-            break
-        begin = end
-        end = next(jst, begin, begin_hour)
-        if end < 0:
-            end = n
-
-    
     data[Indicators.VWAP] = vwap
     data[Indicators.VWAP_STD] = rate(vwap, std)
     data[Indicators.VWAP_SLOPE] = slope(vwap, 10)
@@ -396,9 +371,6 @@ def VWAP(data: dict, multiply: float, begin_hour=7):
     data[Indicators.VWAP_CROSS] = cross
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
-    
-    pass
-    
     
 def band(vector, signal, multiply):
     n = len(vector)
