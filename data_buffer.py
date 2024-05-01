@@ -17,11 +17,14 @@ def time_utc(year: int, month: int, day: int, hour: int, minute: int):
 
 
 class DataBuffer:
-    def __init__(self, arrays: dict, time_column: str):
-        self.arrays = arrays
+    def __init__(self, time_column: str):
         self.time_column = time_column
+        self.size = 0
+        
+    def initilize(self, arrays: dict):
+        self.arrays = arrays
         self.keys = list(self.arrays.keys())
-        self.size = len(arrays[self.keys[0]])
+        self.size = len(arrays[self.keys[0]])    
         
     def time_array(self):
         return self.arrays[self.time_column]
@@ -114,56 +117,36 @@ class DataBuffer:
             
     
 def test():
-    def print_array(dic):
-        print('time', dic['time'])
-        print('open', dic['open'])
-        print('close', dic['close'])
-        print('ma3', dic['ma3'])
-        print('ma5', dic['ma5'])
-        print()
-        
-    from technical import moving_average
+    import time
+    from mt5_api import Mt5Api
+    symbol = 'DOW'
+    timeframe = 'M1'
+    interval = 20
+    bars = 200
     
-    t0 = time_utc(2024, 1, 1, 8, 0)
-    utc = [t0 + timedelta(minutes=i) for i in range(10)]
-    dic = {
-            'time': utc,    
-            'open': [10, 20, 30, 40, 50, -20, 70, 80, 90, 100],
-            'close': [1, 2, 3, -7, 5, -1, 7, 8, 9, 9.9]
-          }
-    buffer = DataBuffer(dic, 'time')
-
-    buffer.add_empty(['ma3', 'ma5'])    
-    print('#1')
-    print_array(buffer.arrays)
+    api = Mt5Api()
+    api.connect()
+    buffer = DataBuffer('time')
+    for i in range(100):
+        if i == 0:
+            data = api.get_rates(symbol, timeframe, bars)
+        else:
+            data = api.get_rates(symbol, timeframe, 2)
+        if buffer.size == 0:
+            buffer.initilize(data)
+        else:
+            n = buffer.update(data)
+            print('#', i, 'Update data size', n)
+        time.sleep(interval)
+    df = pd.DataFrame(buffer.arrays)
+    df.to_csv('./bufferd_data.xlsx', index=False)
     
-    op = buffer.arrays['open']
-    data2 = moving_average(op, 3)
-    buffer.update_data('ma3', data2)
-    data3 = moving_average(op, 5)
-    buffer.update_data('ma5', data3)
-    print('#2')
-    print_array(buffer.arrays)
- 
-    utc2 = [utc[-2] + timedelta(minutes=i) for i in range(1, 5) ]
-    dic2 = {
-                'time': utc2,
-                'open': [-100, -200, -300, -400],
-                'close': [-22, -33, -44, -55]
-            }
-    n = buffer.update(dic2)
-    
-    op = buffer.data_last('open', 6)
-    data2 = moving_average(op, 3)
-    buffer.update_data('ma3', data2[-3:])
-    
-    op = buffer.data_last('open', 8)
-    data3 = moving_average(op, 5)
-    buffer.update_data('ma5', data3[-3:])
-    print('#3')
-    print_array(buffer.arrays)
+    data = api.get_rates(symbol, timeframe, bars)
+    df = pd.DataFrame(data)
+    df.to_csv('./refference.xlsx', index=False)
     
     
+   
 if __name__ == '__main__':
     test()
     
