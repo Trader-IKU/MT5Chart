@@ -96,6 +96,8 @@ class Indicators:
     VWAP_CROSS = 'VWAP_CROSS'
     VWAP_CROSS_UP = 'VWAP_CROSS_UP'
     VWAP_CROSS_DOWN = 'VWAP_CROSS_DOWN'
+    VWAP_SIGNAL = 'VWAP_SIGNAL'
+    VWAP_SIGNAL_MID = 'VWAP_SIGNAL_MID'
 
 class Signal:
     LONG = 1

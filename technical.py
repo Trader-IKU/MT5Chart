@@ -321,7 +321,7 @@ def time_jst(year, month, day, hour=0):
     t = t0.replace(tzinfo=JST)
     return t
 
-def VWAP(data: dict, multiply: float, begin_hour_list):
+def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=2):
     jst = data[Columns.JST]
     n = len(jst)
     MID(data)
@@ -362,8 +362,8 @@ def VWAP(data: dict, multiply: float, begin_hour_list):
     data[Indicators.VWAP_LOWER] = lower
     
     pos = band_position(mid, lower, vwap, upper)
-    up = probability(pos, [1, 2], 40)
-    down = probability(pos, [-1, -2], 40)
+    up = probability(pos, [1, 2], 50)
+    down = probability(pos, [-1, -2], 50)
     data[Indicators.VWAP_UP] = up
     data[Indicators.VWAP_DOWN] = down
 
@@ -372,6 +372,37 @@ def VWAP(data: dict, multiply: float, begin_hour_list):
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
     
+    signal = full(np.nan, n)
+    signal_mid = full(np.nan, n)   
+    len_left = 2
+    len_right = 2
+    for i in range(len_left + len_right, n):
+        if is_nans(up[i - len_right - len_right: i + 1]):
+            continue
+        center = up[i - len_right]
+        left = up[i - len_left - len_right: i - len_right]
+        range_left = abs(max(left) - min(left))
+        right = up[i - len_right + 1: i + 1]
+        d_right = np.mean(right) - center
+        
+        if range_left < 5:
+            if center >= 90 and d_right < -signal_threshold:
+                if np.nanmin(signal[i - 10: i]) != Signal.SHORT:
+                    signal[i] = Signal.SHORT
+            elif center <= 10 and d_right > signal_threshold:
+                if np.nanmax(signal[i - 10: i]) != Signal.LONG:
+                    signal[i] = Signal.LONG
+                                
+            if center >= 40 and center <= 60:
+                if d_right < -signal_threshold:
+                    if np.nanmin(signal_mid[i - 10: i]) != Signal.SHORT:
+                        signal_mid[i] = Signal.SHORT 
+                elif d_right > signal_threshold:
+                    if np.nanmax(signal_mid[i - 10: i]) != Signal.LONG:
+                        signal_mid[i] = Signal.LONG 
+    data[Indicators.VWAP_SIGNAL] = signal    
+    data[Indicators.VWAP_SIGNAL_MID] = signal_mid
+       
 def band(vector, signal, multiply):
     n = len(vector)
     upper = nans(n)

@@ -41,7 +41,7 @@ INTERVAL_MSEC = 30 * 1000
 
 technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
-VWAP_BEGIN_HOUR = [8, 20]
+VWAP_BEGIN_HOUR = [8, 16, 20]
 
 
 api = Mt5Api()
@@ -235,6 +235,30 @@ def indicators1(data, param):
     # ATR(self.data, 15, 100)
     BB(data, param['bb_window'], param['bb_ma_window'], param['bb_multiply'])      
 
+
+
+def create_markers(time, signal, data, value, symbol, color):
+    x = []
+    y = []
+    for t, s, d in zip(time, signal, data) :
+        if np.isnan(s):
+            continue  
+        if s == value:
+            x.append(t)
+            y.append(d)
+    #print('Marker ', symbol, x, y)
+    markers = go.Scatter(
+                            mode='markers',
+                            x=x,
+                            y=y,
+                            opacity=0.9,
+                            marker_symbol=symbol,
+                            marker=dict(color=color, size=20, line=dict(color='White', width=2)),
+                            showlegend=False
+                        )
+    return markers
+       
+
 def create_chart1(data, num_bars):
     t0 = time.time()
     indicators1(data, technical_param1)
@@ -262,6 +286,12 @@ def create_chart1(data, num_bars):
                          opacity=0.7, 
                          line=dict(color='blue', width=2), 
                          name='VWAP Upper'))
+    
+    fig.add_trace(go.Scatter(x=jst, 
+                         y=data['VWAP'], 
+                         opacity=0.7, 
+                         line=dict(color='green', width=1), 
+                         name='VWAP'))
 
     fig.add_trace(go.Scatter(x=jst, 
                          y=data['VWAP_LOWER'], 
@@ -269,6 +299,11 @@ def create_chart1(data, num_bars):
                          line=dict(color='orange', width=2), 
                          name='VWAP lower'))
 
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['low'], 1, 'triangle-up', 'Green'))
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['high'], -1, 'triangle-down', 'Red'))
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['low'], 1, 'triangle-up', 'Cyan'))
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['high'], -1, 'triangle-down', 'Orange'))
+    
     # Plot volume trace on 2nd row
     
     colors = ['green' if data['open'][i] - data['close'][i] >= 0 
@@ -278,7 +313,6 @@ def create_chart1(data, num_bars):
                      marker_color=colors
                     ), row=2, col=1)
 
-    #print(data['VWAP_CROSS_UP'][100: ])
 
     fig.add_trace(go.Scatter(x=jst,
                          y=data['VWAP_UP'],
@@ -290,7 +324,7 @@ def create_chart1(data, num_bars):
                         line=dict(color='red', width=2)
                     ), row=3, col=1)
 
-    # Plot stochastics trace on 4th row
+  
     fig.add_trace(go.Scatter(x=jst,
                          y=data['BB_UP'],
                          line=dict(color='blue', width=2)

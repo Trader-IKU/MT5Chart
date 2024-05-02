@@ -119,6 +119,7 @@ class DataBuffer:
 def test():
     import time
     from mt5_api import Mt5Api
+
     symbol = 'DOW'
     timeframe = 'M1'
     interval = 20
@@ -145,10 +146,27 @@ def test():
     df = pd.DataFrame(data)
     df.to_csv('./refference.xlsx', index=False)
     
+def test2():
+    import time
+    from mt5_api import Mt5Api
+    from technical import VWAP
+    
+    symbol = 'NIKKEI'
+    timeframe = 'M1'
+    interval = 20
+    bars = 2000
+    
+    api = Mt5Api()
+    api.connect()
+    data = api.get_rates(symbol, timeframe, bars)
+    VWAP(data, 1.8, [8, 20])
+    df = pd.DataFrame(data)
+    df.to_csv('./nikkei_debug.csv', index=False)    
+    
     
    
 if __name__ == '__main__':
-    test()
+    test2()
     
     
     
