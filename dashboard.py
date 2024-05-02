@@ -284,8 +284,14 @@ def create_chart1(data, num_bars):
     fig.add_trace(go.Scatter(x=jst, 
                          y=data['VWAP_UPPER'], 
                          opacity=0.7, 
-                         line=dict(color='blue', width=2), 
+                         line=dict(color='cyan', width=2), 
                          name='VWAP Upper'))
+ 
+    fig.add_trace(go.Scatter(x=jst, 
+                         y=data['VWAP_UPPER2'], 
+                         opacity=0.7, 
+                         line=dict(color='blue', width=2), 
+                         name='VWAP Upper2'))
     
     fig.add_trace(go.Scatter(x=jst, 
                          y=data['VWAP'], 
@@ -298,6 +304,12 @@ def create_chart1(data, num_bars):
                          opacity=0.7, 
                          line=dict(color='orange', width=2), 
                          name='VWAP lower'))
+
+    fig.add_trace(go.Scatter(x=jst, 
+                         y=data['VWAP_LOWER2'], 
+                         opacity=0.7, 
+                         line=dict(color='Red', width=2), 
+                         name='VWAP lower2'))
 
     fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['low'], 1, 'triangle-up', 'Green'))
     fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['high'], -1, 'triangle-down', 'Red'))

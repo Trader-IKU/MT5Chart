@@ -361,9 +361,13 @@ def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=2):
     data[Indicators.VWAP_UPPER] = upper
     data[Indicators.VWAP_LOWER] = lower
     
+    upper, lower = band(vwap, std, multiply + 1)
+    data[Indicators.VWAP_UPPER2] = upper
+    data[Indicators.VWAP_LOWER2] = lower
+    
     pos = band_position(mid, lower, vwap, upper)
-    up = probability(pos, [1, 2], 50)
-    down = probability(pos, [-1, -2], 50)
+    up = probability(pos, [1, 2], 40)
+    down = probability(pos, [-1, -2], 40)
     data[Indicators.VWAP_UP] = up
     data[Indicators.VWAP_DOWN] = down
 
