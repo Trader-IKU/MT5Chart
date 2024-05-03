@@ -128,6 +128,18 @@ def cross_value(vector: list, value):
             cross[i] = DOWN
     return up, down, cross
 
+
+def median(vector, window):
+    n = len(vector)
+    out = nans(n)
+    for i in range (window, n):
+        d = vector[i - window: i + 1]
+        if is_nans(d):
+            continue
+        med = np.median(d)
+        out[i] = med
+    return out
+        
 def vwap_rate(price, vwap, std):
     n = len(price)
     rate = nans(n)
@@ -138,10 +150,10 @@ def vwap_rate(price, vwap, std):
             continue
         if s != 0.0:
             r = (p - v) / s * 100.0
-            rate[i] = 20 * int(r / 20 + 0.5)
-            
+            rate[i] = 20 * int(r / 20)
     ma = moving_average(rate, 20)
-    return ma
+    med = median(rate, 10)
+    return med
     
 def band_position(data, lower, center, upper):
     n = len(data)
@@ -369,19 +381,18 @@ def pivot3(signal, threshold, left_length, right_length):
         left = signal[i - left_length - right_length: i - right_length]
         right = signal[i - right_length + 1: i + 1]
         
-        
         polarity = 0
         # V peak
         d_left = np.nanmax(left) - center
         d_right = np.nanmax(right) - center
         if d_left > 0 and d_right > 0:
-            if d_left >= threshold or d_right >= threshold:
+            if d_left >= threshold and d_right >= threshold:
                 polarity = 1
         # ^ Peak
         d_left = center - np.nanmin(left)
         d_right = center - np.nanmin(right)
         if d_left > 0 and d_right > 0:
-            if d_left >= threshold or d_right >= threshold:
+            if d_left >= threshold and d_right >= threshold:
                 polarity = -1
         
         if polarity == 0:      
