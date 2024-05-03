@@ -108,10 +108,10 @@ def pivot(vector: list, left_length: int, right_length: int, threshold: float):
                 continue
         if center > max(left) and center > max(right):
             high[i - right_length] = center
-            state[i - right_length] = HIGH
+            state[i] = HIGH
         elif center < min(left) and center < min(right):
             low[i - right_length] = center
-            state[i - right_length] = LOW
+            state[i] = LOW
     return high, low, state
 
 def cross_value(vector: list, value):
@@ -128,17 +128,20 @@ def cross_value(vector: list, value):
             cross[i] = DOWN
     return up, down, cross
 
-def rate(ref, signal):
-    n = len(ref)
-    out = nans(n)
-    for i in range(n):
-        r = ref[i]
-        s = signal[i]
-        if is_nans(([r, s])):
+def vwap_rate(price, vwap, std):
+    n = len(price)
+    rate = nans(n)
+    i = -1
+    for p, v, s in zip(price, vwap, std):
+        i += 1
+        if is_nans(([p, v, s])):
             continue
-        if r != 0.0:
-            out[i] = s / r * 100.0
-    return out    
+        if s != 0.0:
+            r = (p - v) / s * 100.0
+            rate[i] = 20 * int(r / 20 + 0.5)
+            
+    ma = moving_average(rate, 20)
+    return ma
     
 def band_position(data, lower, center, upper):
     n = len(data)
@@ -321,7 +324,96 @@ def time_jst(year, month, day, hour=0):
     t = t0.replace(tzinfo=JST)
     return t
 
-def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=2):
+
+def pivot2(signal, threshold, left_length=2, right_length=2):
+    n = len(signal)
+    out = full(np.nan, n) 
+    out_mid = full(np.nan, n)
+    for i in range(left_length + right_length, n):
+        if is_nans(signal[i - right_length - right_length: i + 1]):
+            continue
+        center = signal[i - right_length]
+        left = signal[i - left_length - right_length: i - right_length]
+        range_left = abs(max(left) - min(left))
+        right = signal[i - right_length + 1: i + 1]
+        d_right = np.mean(right) - center
+        
+        if range_left < 5:
+            if center >= 90 and d_right < -threshold:
+                if np.nanmin(out[i - 10: i]) != Signal.SHORT:
+                    out[i] = Signal.SHORT
+            elif center <= 10 and d_right > threshold:
+                if np.nanmax(out[i - 10: i]) != Signal.LONG:
+                    out[i] = Signal.LONG
+                                
+            if center >= 40 and center <= 60:
+                if d_right < -threshold:
+                    if np.nanmin(out_mid[i - 10: i]) != Signal.SHORT:
+                        out_mid[i] = Signal.SHORT 
+                elif d_right > threshold:
+                    if np.nanmax(out_mid[i - 10: i]) != Signal.LONG:
+                        out_mid[i] = Signal.LONG 
+    return out, out_mid
+
+
+
+def pivot3(signal, threshold, left_length, right_length):
+    left_length = int(left_length)
+    right_length = int(right_length)
+    n = len(signal)
+    out = full(np.nan, n) 
+    for i in range(left_length + right_length, n):
+        if is_nans(signal[i - right_length - right_length: i + 1]):
+            continue
+        center = signal[i - right_length]
+        left = signal[i - left_length - right_length: i - right_length]
+        right = signal[i - right_length + 1: i + 1]
+        
+        
+        polarity = 0
+        # V peak
+        d_left = np.nanmax(left) - center
+        d_right = np.nanmax(right) - center
+        if d_left > 0 and d_right > 0:
+            if d_left >= threshold or d_right >= threshold:
+                polarity = 1
+        # ^ Peak
+        d_left = center - np.nanmin(left)
+        d_right = center - np.nanmin(right)
+        if d_left > 0 and d_right > 0:
+            if d_left >= threshold or d_right >= threshold:
+                polarity = -1
+        
+        if polarity == 0:      
+            sig = np.nan
+        elif polarity > 0:
+            sig = Signal.LONG
+        elif polarity < 0:
+            sig = Signal.SHORT
+
+        if center >= 200:
+            if sig == Signal.LONG:
+                sig = np.nan
+                    
+        if center > -50 and center < 50:
+            sig = np.nan
+    
+        if center <= -200:
+            if sig == Signal.SHORT:
+                sig = np.nan            
+                
+        if sig == Signal.SHORT:
+            if np.nanmin(out[i - 15: i]):
+                out[i] = sig 
+        elif sig == Signal.LONG:
+            if np.nanmax(out[i - 15: i]):
+                out[i] = sig                        
+        out[i] = sig
+    return out
+
+
+
+def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=5):
     jst = data[Columns.JST]
     n = len(jst)
     MID(data)
@@ -355,7 +447,8 @@ def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=2):
                 else:
                     std[i] = 0
     data[Indicators.VWAP] = vwap
-    data[Indicators.VWAP_STD] = rate(vwap, std)
+    rate = vwap_rate(mid, vwap, std)
+    data[Indicators.VWAP_RATE] = rate
     data[Indicators.VWAP_SLOPE] = slope(vwap, 10)
     upper, lower = band(vwap, std, multiply)
     data[Indicators.VWAP_UPPER] = upper
@@ -376,36 +469,9 @@ def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=2):
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
     
-    signal = full(np.nan, n)
-    signal_mid = full(np.nan, n)   
-    len_left = 2
-    len_right = 2
-    for i in range(len_left + len_right, n):
-        if is_nans(up[i - len_right - len_right: i + 1]):
-            continue
-        center = up[i - len_right]
-        left = up[i - len_left - len_right: i - len_right]
-        range_left = abs(max(left) - min(left))
-        right = up[i - len_right + 1: i + 1]
-        d_right = np.mean(right) - center
-        
-        if range_left < 5:
-            if center >= 90 and d_right < -signal_threshold:
-                if np.nanmin(signal[i - 10: i]) != Signal.SHORT:
-                    signal[i] = Signal.SHORT
-            elif center <= 10 and d_right > signal_threshold:
-                if np.nanmax(signal[i - 10: i]) != Signal.LONG:
-                    signal[i] = Signal.LONG
-                                
-            if center >= 40 and center <= 60:
-                if d_right < -signal_threshold:
-                    if np.nanmin(signal_mid[i - 10: i]) != Signal.SHORT:
-                        signal_mid[i] = Signal.SHORT 
-                elif d_right > signal_threshold:
-                    if np.nanmax(signal_mid[i - 10: i]) != Signal.LONG:
-                        signal_mid[i] = Signal.LONG 
+    signal = pivot3(rate, 10.0, 5, 5)
     data[Indicators.VWAP_SIGNAL] = signal    
-    data[Indicators.VWAP_SIGNAL_MID] = signal_mid
+    #data[Indicators.VWAP_SIGNAL_MID] = signal_mid
        
 def band(vector, signal, multiply):
     n = len(vector)

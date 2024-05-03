@@ -151,17 +151,17 @@ def test2():
     from mt5_api import Mt5Api
     from technical import VWAP
     
-    symbol = 'NIKKEI'
+    symbol = 'USDJPY'
     timeframe = 'M1'
     interval = 20
-    bars = 2000
+    bars = 1500
     
     api = Mt5Api()
     api.connect()
     data = api.get_rates(symbol, timeframe, bars)
-    VWAP(data, 1.8, [8, 20])
+    VWAP(data, 1.8, [8, 16, 20])
     df = pd.DataFrame(data)
-    df.to_csv('./nikkei_debug.csv', index=False)    
+    df.to_csv('./usdjpy_debug.csv', index=False)    
     
     
    

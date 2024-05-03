@@ -37,7 +37,7 @@ BARSIZE = ['100', '200', '400', '600', '800', '1500', '2000']
 HOURS = list(range(0, 24))
 MINUTES = list(range(0, 60))
 
-INTERVAL_MSEC = 30 * 1000
+INTERVAL_MSEC = 10 * 1000
 
 technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
@@ -311,10 +311,7 @@ def create_chart1(data, num_bars):
                          line=dict(color='Red', width=2), 
                          name='VWAP lower2'))
 
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['low'], 1, 'triangle-up', 'Green'))
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['high'], -1, 'triangle-down', 'Red'))
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['low'], 1, 'triangle-up', 'Cyan'))
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['high'], -1, 'triangle-down', 'Orange'))
+
     
     # Plot volume trace on 2nd row
     
@@ -336,7 +333,19 @@ def create_chart1(data, num_bars):
                         line=dict(color='red', width=2)
                     ), row=3, col=1)
 
+    fig.add_trace(go.Scatter(x=jst,
+                         y=data['VWAP_RATE'],
+                         line=dict(color='blue', width=2)
+                        ), row=4, col=1)
+    
+    
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], 1, 'triangle-up', 'Green'), row=4, col=1)
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], -1, 'triangle-down', 'Red'), row=4, col=1)
+    #fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['low'], 1, 'triangle-up', 'Cyan'))
+    #fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['high'], -1, 'triangle-down', 'Orange'))
+    
   
+    """
     fig.add_trace(go.Scatter(x=jst,
                          y=data['BB_UP'],
                          line=dict(color='blue', width=2)
@@ -346,7 +355,7 @@ def create_chart1(data, num_bars):
                          y=data['BB_DOWN'],
                          line=dict(color='red', width=2)
                         ), row=4, col=1)
-    
+    """
     # update y-axis label
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
