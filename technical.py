@@ -140,20 +140,7 @@ def median(vector, window):
         out[i] = med
     return out
         
-def vwap_rate(price, vwap, std):
-    n = len(price)
-    rate = nans(n)
-    i = -1
-    for p, v, s in zip(price, vwap, std):
-        i += 1
-        if is_nans(([p, v, s])):
-            continue
-        if s != 0.0:
-            r = (p - v) / s * 100.0
-            rate[i] = 20 * int(r / 20)
-    ma = moving_average(rate, 20)
-    med = median(rate, 10)
-    return med
+
     
 def band_position(data, lower, center, upper):
     n = len(data)
@@ -367,9 +354,22 @@ def pivot2(signal, threshold, left_length=2, right_length=2):
                         out_mid[i] = Signal.LONG 
     return out, out_mid
 
+def vwap_rate(price, vwap, std):
+    n = len(price)
+    rate = nans(n)
+    i = -1
+    for p, v, s in zip(price, vwap, std):
+        i += 1
+        if is_nans(([p, v, s])):
+            continue
+        if s != 0.0:
+            r = (p - v) / s * 100.0
+            rate[i] = r #20 * int(r / 20)        
+    med = median(rate, 10)        
+    ma = moving_average(med, 15)
+    return ma
 
-
-def pivot3(signal, threshold, left_length, right_length):
+def vwap_pivot(signal, threshold, left_length, right_length):
     left_length = int(left_length)
     right_length = int(right_length)
     n = len(signal)
@@ -412,19 +412,22 @@ def pivot3(signal, threshold, left_length, right_length):
         if center <= -200:
             if sig == Signal.SHORT:
                 sig = np.nan            
-                
+    
+        if is_nans(out[i- 10: i]) == False:
+            sig = np.nan
+            
+        """            
         if sig == Signal.SHORT:
-            if np.nanmin(out[i - 15: i]):
-                out[i] = sig 
+            if np.nanmin(out[i - 10: i]) == Signal.SHORT:
+                sig = np.nan
         elif sig == Signal.LONG:
-            if np.nanmax(out[i - 15: i]):
-                out[i] = sig                        
+            if np.nanmax(out[i - 10: i]) == Signal.LONG:
+                sig = np.nan
+        """                        
         out[i] = sig
     return out
 
-
-
-def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=5):
+def VWAP(data: dict, multiply: float, begin_hour_list):
     jst = data[Columns.JST]
     n = len(jst)
     MID(data)
@@ -480,7 +483,7 @@ def VWAP(data: dict, multiply: float, begin_hour_list, signal_threshold=5):
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
     
-    signal = pivot3(rate, 10.0, 5, 5)
+    signal = vwap_pivot(rate, 7.0, 5, 5)
     data[Indicators.VWAP_SIGNAL] = signal    
     #data[Indicators.VWAP_SIGNAL_MID] = signal_mid
        
