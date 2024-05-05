@@ -33,11 +33,11 @@ from mt5_api import Mt5Api
 
 TICKERS = ['NIKKEI', 'DOW', 'NSDQ', 'USDJPY']
 TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
-BARSIZE = ['100', '200', '400', '600', '800', '1500', '2000']
+BARSIZE = ['400', '600', '800', '1500', '2000', '3000']
 HOURS = list(range(0, 24))
 MINUTES = list(range(0, 60))
 
-INTERVAL_MSEC = 10 * 1000
+INTERVAL_MSEC = 30 * 1000
 
 technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
@@ -273,94 +273,46 @@ def create_chart1(data, num_bars):
     # add subplot properties when initializing fig variable
     fig = plotly.subplots.make_subplots(rows=4, cols=1, shared_xaxes=True,
                     vertical_spacing=0.01, 
-                    row_heights=[0.5,0.1,0.2,0.2])
+                    row_heights=[0.5, 0.1, 0.2, 0.1])
 
     fig.add_trace(go.Candlestick(x=jst,
                     open=data['open'],
                     high=data['high'],
                     low=data['low'],
                     close=data['close'], name = 'market data'))
-    
-    fig.add_trace(go.Scatter(x=jst, 
-                         y=data['VWAP_UPPER'], 
+        
+    colors1 = ['Cyan', 'Lime', 'Blue']
+    colors2 = ['Yellow', 'Orange', 'Red']
+    for i in range(1, 4):
+        fig.add_trace(go.Scatter(x=jst, 
+                         y=data['VWAP_UPPER' + str(i)], 
                          opacity=0.7, 
-                         line=dict(color='cyan', width=2), 
+                         line=dict(color=colors1[i - 1], width=2), 
                          name='VWAP Upper'))
  
-    fig.add_trace(go.Scatter(x=jst, 
-                         y=data['VWAP_UPPER2'], 
+        fig.add_trace(go.Scatter(x=jst, 
+                         y=data['VWAP_LOWER' + str(i)], 
                          opacity=0.7, 
-                         line=dict(color='blue', width=2), 
-                         name='VWAP Upper2'))
-    
-    fig.add_trace(go.Scatter(x=jst, 
-                         y=data['VWAP'], 
-                         opacity=0.7, 
-                         line=dict(color='green', width=1), 
-                         name='VWAP'))
-
-    fig.add_trace(go.Scatter(x=jst, 
-                         y=data['VWAP_LOWER'], 
-                         opacity=0.7, 
-                         line=dict(color='orange', width=2), 
+                         line=dict(color=colors2[i - 1], width=2), 
                          name='VWAP lower'))
 
-    fig.add_trace(go.Scatter(x=jst, 
-                         y=data['VWAP_LOWER2'], 
-                         opacity=0.7, 
-                         line=dict(color='Red', width=2), 
-                         name='VWAP lower2'))
+    colors = ['green' if data['open'][i] - data['close'][i] >= 0 else 'red' for i in range(n)]
+    fig.add_trace(go.Bar(x=jst, y=data['tick_volume'], marker_color=colors), row=2, col=1)
+    
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_RATE'], line=dict(color='blue', width=2)), row=3, col=1)
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], 1, 'triangle-up', 'Green'), row=3, col=1)
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], -1, 'triangle-down', 'Red'), row=3, col=1)
+    
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_UP'], line=dict(color='blue', width=2)), row=4, col=1)
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_DOWN'], line=dict(color='red', width=2)), row=4, col=1)
 
 
-    
-    # Plot volume trace on 2nd row
-    
-    colors = ['green' if data['open'][i] - data['close'][i] >= 0 
-          else 'red' for i in range(n)]
-    fig.add_trace(go.Bar(x=jst, 
-                     y=data['tick_volume'],
-                     marker_color=colors
-                    ), row=2, col=1)
 
-
-    fig.add_trace(go.Scatter(x=jst,
-                         y=data['VWAP_UP'],
-                         line=dict(color='blue', width=2)
-                        ), row=3, col=1)
-    
-    fig.add_trace(go.Scatter(x=jst,
-                        y=data['VWAP_DOWN'],
-                        line=dict(color='red', width=2)
-                    ), row=3, col=1)
-
-    fig.add_trace(go.Scatter(x=jst,
-                         y=data['VWAP_RATE'],
-                         line=dict(color='blue', width=2)
-                        ), row=4, col=1)
-    
-    
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], 1, 'triangle-up', 'Green'), row=4, col=1)
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], -1, 'triangle-down', 'Red'), row=4, col=1)
-    #fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['low'], 1, 'triangle-up', 'Cyan'))
-    #fig.add_trace(create_markers(jst, data['VWAP_SIGNAL_MID'], data['high'], -1, 'triangle-down', 'Orange'))
-    
-  
-    """
-    fig.add_trace(go.Scatter(x=jst,
-                         y=data['BB_UP'],
-                         line=dict(color='blue', width=2)
-                        ), row=4, col=1)
-    
-    fig.add_trace(go.Scatter(x=jst,
-                         y=data['BB_DOWN'],
-                         line=dict(color='red', width=2)
-                        ), row=4, col=1)
-    """
     # update y-axis label
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
-    fig.update_yaxes(title_text="VWAP Band", showgrid=False, row=3, col=1)
-    fig.update_yaxes(title_text="BB Band", row=4, col=1)     
+    fig.update_yaxes(title_text="VWAP Rate", showgrid=False, row=3, col=1)
+    fig.update_yaxes(title_text="VWAP Band1", row=4, col=1)     
     return fig
 
 

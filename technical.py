@@ -366,26 +366,27 @@ def vwap_rate(price, vwap, std):
             r = (p - v) / s * 100.0
             rate[i] = r #20 * int(r / 20)        
     med = median(rate, 10)        
-    ma = moving_average(med, 15)
+    ma = moving_average(med, 20)
     return ma
 
-def vwap_pivot(signal, threshold, left_length, right_length):
-    left_length = int(left_length)
-    right_length = int(right_length)
+def vwap_pivot(signal, threshold, left_length, center_length, right_length):
     n = len(signal)
     out = full(np.nan, n) 
-    for i in range(left_length + right_length, n):
-        if is_nans(signal[i - right_length - right_length: i + 1]):
+    for i in range(left_length + center_length + right_length, n):
+        if is_nans(signal[i - right_length - center_length - right_length: i + 1]):
             continue
-        center = signal[i - right_length]
-        left = signal[i - left_length - right_length: i - right_length]
-        right = signal[i - right_length + 1: i + 1]
+        l = i - left_length - center_length - right_length + 1
+        c = i - right_length - center_length + 1
+        r = i - right_length + 1
+        left = signal[l: c]
+        center = np.mean(signal[c: r])
+        right = signal[r: i + 1]
         
         polarity = 0
         # V peak
         d_left = np.nanmax(left) - center
         d_right = np.nanmax(right) - center
-        if d_left > 0 and d_right > 0:
+        if d_left > 0 or d_right > 0:
             if d_left >= threshold and d_right >= threshold:
                 polarity = 1
         # ^ Peak
@@ -402,6 +403,7 @@ def vwap_pivot(signal, threshold, left_length, right_length):
         elif polarity < 0:
             sig = Signal.SHORT
 
+        """
         if center >= 200:
             if sig == Signal.LONG:
                 sig = np.nan
@@ -412,18 +414,15 @@ def vwap_pivot(signal, threshold, left_length, right_length):
         if center <= -200:
             if sig == Signal.SHORT:
                 sig = np.nan            
-    
-        if is_nans(out[i- 10: i]) == False:
-            sig = np.nan
-            
-        """            
+        """
+        
         if sig == Signal.SHORT:
             if np.nanmin(out[i - 10: i]) == Signal.SHORT:
                 sig = np.nan
         elif sig == Signal.LONG:
             if np.nanmax(out[i - 10: i]) == Signal.LONG:
                 sig = np.nan
-        """                        
+                           
         out[i] = sig
     return out
 
@@ -464,26 +463,24 @@ def VWAP(data: dict, multiply: float, begin_hour_list):
     rate = vwap_rate(mid, vwap, std)
     data[Indicators.VWAP_RATE] = rate
     data[Indicators.VWAP_SLOPE] = slope(vwap, 10)
-    upper, lower = band(vwap, std, multiply)
-    data[Indicators.VWAP_UPPER] = upper
-    data[Indicators.VWAP_LOWER] = lower
     
-    upper, lower = band(vwap, std, multiply + 1)
-    data[Indicators.VWAP_UPPER2] = upper
-    data[Indicators.VWAP_LOWER2] = lower
+    for i in range(1, 5):
+        upper, lower = band(vwap, std, float(i))
+        data[Indicators.VWAP_UPPER + str(i)] = upper
+        data[Indicators.VWAP_LOWER + str(i)] = lower
     
     pos = band_position(mid, lower, vwap, upper)
     up = probability(pos, [1, 2], 40)
     down = probability(pos, [-1, -2], 40)
     data[Indicators.VWAP_UP] = up
     data[Indicators.VWAP_DOWN] = down
-
+    
     cross_up, cross_down, cross = cross_value(up, 50)
     data[Indicators.VWAP_CROSS] = cross
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
     
-    signal = vwap_pivot(rate, 7.0, 5, 5)
+    signal = vwap_pivot(rate, 6.0, 4, 4, 4)
     data[Indicators.VWAP_SIGNAL] = signal    
     #data[Indicators.VWAP_SIGNAL_MID] = signal_mid
        
