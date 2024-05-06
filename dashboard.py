@@ -39,7 +39,12 @@ MINUTES = list(range(0, 60))
 
 INTERVAL_MSEC = 30 * 1000
 
-technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
+technical_param1 = {'vwap_begin_hour_list': [8, 16, 20], 
+                    'pivot_threshold':0.6, 
+                    'pivot_left_len':4,
+                    'pivot_center_len':4,
+                    'pivot_right_len':4,
+                    }
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
 VWAP_BEGIN_HOUR = [8, 16, 20]
 VWAP_BEGIN_HOUR_FX = [8]
@@ -94,15 +99,6 @@ def select_symbol(number: int):
                                 barsize_dropdown])
     return [header, symbol, timeframe, barsize] 
 
-vwap_multiply = dcc.Input(id='vwap_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
-bb_window = dcc.Input(id='bb_window',type="number", min=10, max=100, step=1, value=30)
-bb_ma_window = dcc.Input(id='bb_ma_window',type="number", min=10, max=100, step=1, value=80)
-bb_multiply = dcc.Input(id='bb_multiply',type="number", min=1.0, max=4.0, step=0.1, value=1.8)
-
-params2 = html.Div([html.P('VWAP Multiply'), vwap_multiply])
-params3 = html.Div([html.P('BB Window'), bb_window])
-params4 = html.Div([html.P('Bb MA Window'), bb_ma_window])
-params5 = html.Div([html.P('BB Multiply'), bb_multiply])
 
 symbol1 = select_symbol(1)
 sidebar1 =  html.Div([
@@ -112,16 +108,10 @@ sidebar1 =  html.Div([
                                     symbol1[2],
                                     symbol1[3],
                                     html.Hr(),
-                                    params2,
-                                    params3,
-                                    params4,
-                                    params5,
                                     html.Hr()],
                                 style={'height': '50vh', 'margin': '8px'})
                     ])
  
-
-
 atr_window = dcc.Input(id='atr_window',type="number", min=10, max=100, step=10, value=technical_param2['atr_window'])
 atr_multiply = dcc.Input(id='atr_multiply',type="number", min=1, max=4, step=0.1, value=technical_param2['atr_multiply'])
 peak_hold_term = dcc.Input(id='peak_hold_term',type="number", min=10, max=100, step=1, value=technical_param2['peak_hold_term'])
@@ -184,10 +174,6 @@ app.layout = dbc.Container([
     State('symbol_dropdown1', 'value'), 
     State('timeframe_dropdown1', 'value'), 
     State('barsize_dropdown1', 'value'),
-    State('vwap_multiply', 'value'),
-    State('bb_window', 'value'), 
-    State('bb_ma_window', 'value'),
-    State('bb_multiply', 'value'),
     
     State('symbol_dropdown2', 'value'), 
     State('timeframe_dropdown2', 'value'), 
@@ -200,10 +186,6 @@ def update_chart(interval,
                  symbol1,
                  timeframe1,
                  num_bars1,
-                 vwap_multiply,
-                 bb_window,
-                 bb_ma_window, 
-                 bb_multiply,
                  symbol2,
                  timeframe2,
                  num_bars2,
@@ -211,10 +193,7 @@ def update_chart(interval,
                  atr_multiply,
                  peak_hold_term
                  ):
-    technical_param1['vwap_multiply'] = vwap_multiply
-    technical_param1['bb_window'] = bb_window
-    technical_param1['bb_ma_window'] = bb_ma_window
-    technical_param1['bb_multiply'] == bb_multiply
+
     
     num_bars1 = int(num_bars1)
     data1 = api.get_rates(symbol1, timeframe1, num_bars1 + 60 * 8)
@@ -229,19 +208,21 @@ def update_chart(interval,
     fig2 = create_chart2(data2, num_bars2)
     return create_graph(symbol1, timeframe1, fig1, data1), create_graph(symbol2, timeframe2, fig2, data2)
 
-
 def indicators1(symbol, data, param):
     if symbol.lower() == 'usdjpy':
         hours = VWAP_BEGIN_HOUR_FX
     else:
-        hours = VWAP_BEGIN_HOUR
+        hours = param['vwap_begin_hour_list']
     
-    VWAP(data, param['vwap_multiply'], hours)
+    VWAP(data,
+         hours,
+         param['pivot_threshold'],
+         param['pivot_left_len'],
+         param['pivot_center_len'],
+         param['pivot_right_len']
+         )
     #ADX(data, 20, 20, 100)
-    BB(data, param['bb_window'], param['bb_ma_window'], param['bb_multiply'])      
-
-
-
+    
 def create_markers(time, signal, data, value, symbol, color):
     x = []
     y = []

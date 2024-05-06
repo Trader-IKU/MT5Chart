@@ -426,7 +426,7 @@ def vwap_pivot(signal, threshold, left_length, center_length, right_length):
         out[i] = sig
     return out
 
-def VWAP(data: dict, multiply: float, begin_hour_list):
+def VWAP(data: dict, begin_hour_list, pivot_threshold, pivot_left_len, pivot_center_len, pivot_right_len):
     jst = data[Columns.JST]
     n = len(jst)
     MID(data)
@@ -482,7 +482,7 @@ def VWAP(data: dict, multiply: float, begin_hour_list):
     data[Indicators.VWAP_CROSS_UP] = cross_up
     data[Indicators.VWAP_CROSS_DOWN] = cross_down
     
-    signal = vwap_pivot(rate, 6.0, 4, 4, 4)
+    signal = vwap_pivot(rate, pivot_threshold, pivot_left_len, pivot_center_len, pivot_right_len)
     data[Indicators.VWAP_SIGNAL] = signal    
     #data[Indicators.VWAP_SIGNAL_MID] = signal_mid
        
