@@ -26,7 +26,7 @@ from plotly.figure_factory import create_candlestick
 
 from ta.trend import MACD
 from ta.momentum import StochasticOscillator
-from technical import VWAP, BB, ATR_TRAIL
+from technical import VWAP, BB, ATR_TRAIL, ADX
 
 from utils import Utils
 from mt5_api import Mt5Api
@@ -42,7 +42,7 @@ INTERVAL_MSEC = 30 * 1000
 technical_param1 = {'bb_window':30, 'bb_ma_window':80, 'bb_multiply': 1.8, 'vwap_multiply': 1.8, 'vwap_begin_hour': 7}
 technical_param2 = {'atr_window': 50, 'atr_multiply': 2.0, 'peak_hold_term': 10}
 VWAP_BEGIN_HOUR = [8, 16, 20]
-
+VWAP_BEGIN_HOUR_FX = [8]
 
 api = Mt5Api()
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -218,7 +218,7 @@ def update_chart(interval,
     
     num_bars1 = int(num_bars1)
     data1 = api.get_rates(symbol1, timeframe1, num_bars1 + 60 * 8)
-    fig1 = create_chart1(data1, num_bars1)
+    fig1 = create_chart1(symbol1, data1, num_bars1)
 
     technical_param2['atr_window'] = atr_window
     technical_param2['atr_multiply'] = atr_multiply
@@ -230,9 +230,14 @@ def update_chart(interval,
     return create_graph(symbol1, timeframe1, fig1, data1), create_graph(symbol2, timeframe2, fig2, data2)
 
 
-def indicators1(data, param):
-    VWAP(data, param['vwap_multiply'], VWAP_BEGIN_HOUR)
-    # ATR(self.data, 15, 100)
+def indicators1(symbol, data, param):
+    if symbol.lower() == 'usdjpy':
+        hours = VWAP_BEGIN_HOUR_FX
+    else:
+        hours = VWAP_BEGIN_HOUR
+    
+    VWAP(data, param['vwap_multiply'], hours)
+    #ADX(data, 20, 20, 100)
     BB(data, param['bb_window'], param['bb_ma_window'], param['bb_multiply'])      
 
 
@@ -259,9 +264,9 @@ def create_markers(time, signal, data, value, symbol, color):
     return markers
        
 
-def create_chart1(data, num_bars):
+def create_chart1(symbol, data, num_bars):
     t0 = time.time()
-    indicators1(data, technical_param1)
+    indicators1(symbol, data, technical_param1)
     data = Utils.sliceDictLast(data, num_bars)
     jst = data['jst']
     n = len(jst)
@@ -271,9 +276,9 @@ def create_chart1(data, num_bars):
     fig=go.Figure()
 
     # add subplot properties when initializing fig variable
-    fig = plotly.subplots.make_subplots(rows=4, cols=1, shared_xaxes=True,
+    fig = plotly.subplots.make_subplots(rows=5, cols=1, shared_xaxes=True,
                     vertical_spacing=0.01, 
-                    row_heights=[0.5, 0.1, 0.2, 0.1])
+                    row_heights=[0.5, 0.1, 0.2,  0.2, 0.1])
 
     fig.add_trace(go.Candlestick(x=jst,
                     open=data['open'],
@@ -299,20 +304,21 @@ def create_chart1(data, num_bars):
     colors = ['green' if data['open'][i] - data['close'][i] >= 0 else 'red' for i in range(n)]
     fig.add_trace(go.Bar(x=jst, y=data['tick_volume'], marker_color=colors), row=2, col=1)
     
-    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_RATE'], line=dict(color='blue', width=2)), row=3, col=1)
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], 1, 'triangle-up', 'Green'), row=3, col=1)
-    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], -1, 'triangle-down', 'Red'), row=3, col=1)
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_SLOPE'], line=dict(color='Green', width=2)), row=3, col=1)
     
-    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_UP'], line=dict(color='blue', width=2)), row=4, col=1)
-    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_DOWN'], line=dict(color='red', width=2)), row=4, col=1)
-
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_RATE'], line=dict(color='blue', width=2)), row=4, col=1)
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], 1, 'triangle-up', 'Green'), row=4, col=1)
+    fig.add_trace(create_markers(jst, data['VWAP_SIGNAL'], data['VWAP_RATE'], -1, 'triangle-down', 'Red'), row=4, col=1)
+    
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_UP'], line=dict(color='blue', width=2)), row=5, col=1)
+    fig.add_trace(go.Scatter(x=jst, y=data['VWAP_DOWN'], line=dict(color='red', width=2)), row=5, col=1)
 
 
     # update y-axis label
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
-    fig.update_yaxes(title_text="VWAP Rate", showgrid=False, row=3, col=1)
-    fig.update_yaxes(title_text="VWAP Band1", row=4, col=1)     
+    fig.update_yaxes(title_text="VWAP Slope", showgrid=False, row=3, col=1)
+    fig.update_yaxes(title_text="VWAP Rate", row=4, col=1)     
     return fig
 
 

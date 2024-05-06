@@ -28,14 +28,14 @@ def moving_average(vector, window):
         out[i] = stat.mean(d)
     return out
 
-def slope(signal: list, window: int, tolerance=0.0):
+def slope(signal: list, window: int, minutes: int, tolerance=0.0):
     n = len(signal)
     out = full(0, n)
     for i in range(window - 1, n):
         d = signal[i - window + 1: i + 1]
         m, offset = np.polyfit(range(window), d, 1)
         if abs(m) > tolerance:
-            out[i] = m
+            out[i] = m / np.mean(d[:3]) * 100.0 / (window * minutes)  * 60 * 24
     return out
 
 def subtract(signal1: list, signal2:list):
@@ -462,7 +462,9 @@ def VWAP(data: dict, multiply: float, begin_hour_list):
     data[Indicators.VWAP] = vwap
     rate = vwap_rate(mid, vwap, std)
     data[Indicators.VWAP_RATE] = rate
-    data[Indicators.VWAP_SLOPE] = slope(vwap, 10)
+    
+    dt = jst[1] - jst[0]
+    data[Indicators.VWAP_SLOPE] = slope(vwap, 10, dt.total_seconds() / 60)
     
     for i in range(1, 5):
         upper, lower = band(vwap, std, float(i))
